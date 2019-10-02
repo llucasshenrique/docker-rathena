@@ -1,0 +1,43 @@
+version: '3'
+services:
+  login-server:
+    build: 
+        context: ./
+        dockerfile: ./login-server/Dockerfile
+    depends_on:
+       - database
+       - adminer
+    ports:
+       - 6900:6900
+ 
+  database:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ragnarok
+    volumes:
+      - mysql_volume:/var/lib/mysql
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+  nginx:
+     build:
+       context: ./
+       dockerfile: ./nginx/Dockerfile
+     ports:
+       - 80:80
+
+  proxy:
+     build:
+        context: ./
+        dockerfile: ./proxy/Dockerfile
+     ports:
+        - 5999:5999
+
+volumes:
+  mysql_volume:
