@@ -3,14 +3,16 @@ RUN apt update && apt install make libmysqlclient-dev zlib1g-dev libpcre3-dev gc
 WORKDIR /
 ADD rathena-source/ .
 RUN ./configure
-RUN make login
+RUN make clean && make map
 
 FROM ubuntu:latest
 RUN apt update && apt install libmysqlclient20 zlib1g libpcre3 -y
-COPY --from=builder /login-server .
+COPY --from=builder /map-server .
 COPY --from=builder /conf/ /conf
-RUN chmod a+x login-server
-RUN useradd -ms /bin/bash login-server
-USER login-server
+COPY --from=builder /db/ /db
+COPY --from=builder /npc/ /npc
+RUN chmod a+x map-server
+RUN useradd -ms /bin/bash map-server
+USER map-server
 ADD wait.sh .
-CMD ["./wait.sh", "database:3306", "--", "./login-server"]
+CMD ["./wait.sh", "char-server:6121", "--", "./map-server"]

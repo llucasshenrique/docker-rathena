@@ -1,5 +1,17 @@
 version: '3'
 services:
+  datadog:
+    image: datadog/agent:latest
+    environment:
+     - DD_API_KEY=858af784e234d903aec234c68a0af14e
+     - DD_PROCESS_AGENT_ENABLED=true
+     - DD_LOGS_ENABLED=true
+     - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+     - DOCKER_CONTENT_TRUST=1
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock:ro
+     - /proc/:/host/proc/:ro
+     - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
   login-server:
     build: 
         context: ./
@@ -7,8 +19,28 @@ services:
     depends_on:
        - database
        - adminer
+       - apache
+       - proxy
     ports:
        - 6900:6900
+
+  char-server:
+      build:
+         context: ./
+         dockerfile: ./char-server/Dockerfile
+      depends_on:
+         - login-server
+      ports:
+         - 6121:6121
+
+  map-server:
+      build:
+         context: ./
+         dockerfile: ./map-server/Dockerfile
+      depends_on:
+         - char-server
+      ports:
+         - 5121:5121
  
   database:
     image: mysql
@@ -17,7 +49,7 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ragnarok
     volumes:
-      - mysql_volume:/var/lib/mysql
+            - ~/mysql-data:/var/lib/mysql
 
   adminer:
     image: adminer
@@ -25,10 +57,10 @@ services:
     ports:
       - 8080:8080
 
-  nginx:
+  apache:
      build:
        context: ./
-       dockerfile: ./nginx/Dockerfile
+       dockerfile: ./apache/Dockerfile
      ports:
        - 80:80
 
@@ -39,5 +71,3 @@ services:
      ports:
         - 5999:5999
 
-volumes:
-  mysql_volume:
