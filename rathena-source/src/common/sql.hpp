@@ -136,7 +136,7 @@ int Sql_Query(Sql* self, const char* query, ...);
 /// The query is constructed as if it was svprintf.
 ///
 /// @return SQL_SUCCESS or SQL_ERROR
-int Sql_QueryV(Sql* self, const char* query, va_list args);
+int Sql_QueryV(Sql* self, const char* query, va_list args, auto& parent, auto& tracer);
 
 
 
