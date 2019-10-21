@@ -16,10 +16,8 @@
 #include "strlib.hpp"
 #include "timer.hpp"
 
-// DataDog Agent
-#include <opentracing/dynamic_load.h>
-#include <iostream>
-#include <string>
+// DataDog Tracer
+#include "tracer.cpp"
 
 // MySQL 8.0 or later removed my_bool typedef.
 // Reintroduce it as a bandaid fix.
@@ -269,37 +267,16 @@ size_t Sql_EscapeStringLen(Sql* self, char *out_to, const char *from, size_t fro
 /// Executes a query.
 int Sql_Query(Sql* self, const char* query, ...)
 {
-	std::string error_message;
-  	auto handle_maybe = opentracing::DynamicallyLoadTracingLibrary(
-	      "/usr/local/lib/libdd_opentracing_plugin.so", error_message);
-	  if (!handle_maybe) {
-	    std::cerr << "Failed to load tracer library " << error_message << "\n";
-	    return 1;
-	  }
-
-	std::string tracer_config = R"({
-	      "service": "ragnacompose-mysql-client",
-	      "agent_host": "datadog",
-	      "agent_port": 8126
-	    })"; 
-
-	auto& tracer_factory = handle_maybe->tracer_factory();
-	auto tracer_maybe = tracer_factory.MakeTracer(tracer_config.c_str(), error_message);
-	if (!tracer_maybe) {
-	  std::cerr << "Failed to create tracer " << error_message << "\n";
-	  return 1;
-	}
-	auto& tracer = *tracer_maybe; 
-
-	auto span_a = tracer->StartSpan(query);
-    	//span_a->SetTag("query", query);
-
 	int res;
 	va_list args;
 
+	auto& tracer = CreateTracer();
+
+	auto span_a = tracer->StartSpan(query);
 	va_start(args, query);
 	res = Sql_QueryV(self, query, args, span_a, tracer);
 	span_a->SetTag("args", args);
+	span_a->SetTag("res", res);
 	va_end(args);
 
  	tracer->Close();
@@ -325,7 +302,7 @@ int Sql_QueryV(Sql* self, const char* query, va_list args, auto& parent, auto& t
 		return SQL_ERROR;
 	}
 	self->result = mysql_store_result(&self->handle);
-	span_b->SetTag("result", self->result);
+	span_b->SetTag("StringBuf_Vprintf", StringBuf_Vprintf(&self->buf, query, args));
 	span_b->SetTag("query", query);
 	if( mysql_errno(&self->handle) != 0 )
 	{

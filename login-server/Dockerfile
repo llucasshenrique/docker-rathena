@@ -1,5 +1,6 @@
-FROM ubuntu:latest AS builder
-RUN apt update && apt install make libmysqlclient-dev zlib1g-dev libpcre3-dev gcc g++ wget cmake git -y
+FROM debian:latest AS builder
+RUN apt update && apt install make libmariadbclient-dev-compat zlib1g-dev libpcre3-dev gcc g++ wget cmake git -y
+#RUN apt update && apt install make libmysqlclient-dev zlib1g-dev libpcre3-dev gcc g++ wget cmake git -y
 WORKDIR /
 ADD rathena-source/dd-opentracing-cpp.sh /
 ENV LD_LIBRARY_PATH=/usr/local/lib
@@ -10,17 +11,18 @@ ADD rathena-source/src /src
 #ADD rathena-source/Make* /
 ADD rathena-source/3rdparty /3rdparty
 RUN ./configure
-RUN env
-RUN echo $LD_LIBRARY_PATH
-RUN ls -lR $LD_LIBRARY_PATH
+#RUN env
+#RUN echo $LD_LIBRARY_PATH
+#RUN ls -lR $LD_LIBRARY_PATH
 #RUN find / | grep \\.so$
-RUN find / | grep libopentracing
+#RUN find / | grep libopentracing
 #RUN cat /src/login/Makefile
 RUN make login
 ADD rathena-source/conf /conf
 
-FROM ubuntu:latest
-RUN apt update && apt install libmysqlclient20 zlib1g libpcre3 gcc g++ wget cmake -y
+FROM debian:latest
+RUN apt update && apt install libmariadbclient-dev zlib1g libpcre3 gcc g++ wget cmake -y
+#RUN apt update && apt install libmysqlclient20 zlib1g libpcre3 gcc g++ wget cmake -y
 COPY --from=builder /login-server /
 COPY --from=builder /conf/ /conf
 COPY --from=builder /usr/local/lib/ /usr/lib/x86_64-linux-gnu/
