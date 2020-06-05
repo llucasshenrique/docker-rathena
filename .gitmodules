@@ -1,3 +1,6 @@
 [submodule "fluxcp-source"]
 	path = fluxcp-source
 	url = https://github.com/rathena/FluxCP
+[submodule "rathena-source"]
+	path = rathena-source
+	url = https://github.com/rathena/rathena
