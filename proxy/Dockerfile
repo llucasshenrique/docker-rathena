@@ -1,5 +1,3 @@
-FROM ubuntu
-RUN apt update
-RUN apt install npm -y
+FROM node:14-slim
 RUN npm install wsproxy -g
 CMD ["wsproxy"]
