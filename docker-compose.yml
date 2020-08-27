@@ -1,70 +1,94 @@
-version: '3'
+version: "3"
+
 services:
-  fluxcp:
+  login-server:
     build:
       context: ./
-      dockerfile: ./fluxcp-server/Dockerfile
-    ports:
-     - 8888:80
-  datadog:
-    image: datadog/agent:latest
-    environment:
-     - DD_API_KEY=858af784e234d903aec234c68a0af14e
-     - DD_PROCESS_AGENT_ENABLED=true
-     - DD_LOGS_ENABLED=true
-     - DD_APM_ENABLED=true
-     - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
-     - DOCKER_CONTENT_TRUST=1
-    volumes:
-     - /var/run/docker.sock:/var/run/docker.sock:ro
-     - /proc/:/host/proc/:ro
-     - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
-    ports:
-     - 8125:8125
-     - 8126:8126
-  login-server:
-    build: 
-        context: ./
-        dockerfile: ./login-server/Dockerfile
+      dockerfile: ./login-server/Dockerfile
     depends_on:
-       - database
-       - adminer
-       - proxy
+      - database
+      - adminer
+      - proxy
     ports:
-       - 6900:6900
+      - 6900:6900
+
   char-server:
-      build:
-         context: ./
-         dockerfile: ./char-server/Dockerfile
-      depends_on:
-         - login-server
-      ports:
-         - 6121:6121
+    build:
+      context: ./
+      dockerfile: ./char-server/Dockerfile
+    depends_on:
+      - database
+      - login-server
+    ports:
+      - 6121:6121
+
   map-server:
-      build:
-         context: ./
-         dockerfile: ./map-server/Dockerfile
-      depends_on:
-         - char-server
-      ports:
-         - 5121:5121
+    build:
+      context: ./
+      dockerfile: ./map-server/Dockerfile
+    depends_on:
+      - database
+      - char-server
+    ports:
+      - 5121:5121
+
   database:
     image: mysql
     command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ragnarok
+      MYSQL_USER: ragnarok
+      MYSQL_PASSWORD: ragnarok
+      MYSQL_DATABASE: ragnarok
     volumes:
-            - ~/mysql-data:/var/lib/mysql
+      - ./mysql-data:/var/lib/mysql
+
+  cp-database:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: fluxcp
+      MYSQL_USER: fluxcp
+      MYSQL_PASSWORD: fluxcp
+      MYSQL_DATABASE: fluxcp
+    volumes:
+      - ./mysql-data-cp:/var/lib/mysql
+
   adminer:
     image: adminer
     restart: always
     ports:
       - 8080:8080
-  proxy:
-     build:
-        context: ./
-        dockerfile: ./proxy/Dockerfile
-     ports:
-        - 5999:5999
 
+  fluxcp:
+    build:
+      context: ./
+      dockerfile: ./fluxcp-server/Dockerfile
+    ports:
+      - 8888:80
+
+  proxy:
+    build:
+      context: ./
+      dockerfile: ./proxy/Dockerfile
+    ports:
+      - 5999:5999
+
+  datadog:
+    image: datadog/agent:latest
+    environment:
+      - DD_API_KEY=858af784e234d903aec234c68a0af14e
+      - DD_PROCESS_AGENT_ENABLED=true
+      - DD_LOGS_ENABLED=true
+      - DD_APM_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DOCKER_CONTENT_TRUST=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+    ports:
+      - 8125:8125
+      - 8126:8126
